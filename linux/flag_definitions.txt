@@ -1,0 +1,91 @@
+--get_users.sh Flags
+-High-Risk User Flags:
+
+[SUSPICIOUS] Non-root UID 0 - User account other than root with UID 0
+[SUSPICIOUS] Service account with login shell - System account (UID < 1000) with bash/sh/zsh/fish shell
+[SUSPICIOUS] Empty/locked password - Account with empty, "!", or "*" password hash
+[RECENT] Created within 30 days - User account with home directory modified in last 30 days
+
+-Standard Flags:
+
+Admin user - Member of wheel/sudo/admin/root groups
+Regular user - Standard user account (UID >= 1000 with login shell)
+System account - Normal system account (UID < 1000 with nologin shell)
+
+
+--get_cron.sh Flags
+-Suspicious Cron Job Flags:
+
+[SUSPICIOUS] - Base flag for any suspicious pattern
+[HIGH-FREQ] - Runs every minute (* * * * * or */1 * * * *)
+[NETWORK-DL] - Contains wget or curl commands
+[NETWORK-CONN] - Contains nc, netcat, or telnet commands
+[TEMP-DIR] - Uses /tmp/, /var/tmp/, or /dev/shm/ directories
+[ENCODED] - Contains base64, python -c, or perl -e patterns
+[REVERSE-SHELL] - Contains /dev/tcp/, bash -i, or sh -i patterns
+[PRIVESC] - Contains chmod 777 or chown root patterns
+
+-Standard Flags:
+
+System cron - Standard system cron job
+cron.hourly, cron.daily, cron.weekly, cron.monthly - Standard cron directories
+cron.d: filename - Jobs from /etc/cron.d/ files
+User crontab - Individual user cron jobs
+SystemD timer - SystemD timer units
+
+
+--get_sudoers.sh Flags
+-High-Risk Sudo Flags:
+
+[HIGH-RISK] - Base flag for dangerous sudo rules
+[NOPASSWD] - No password required for sudo
+[FULL-ROOT] - Complete root access (ALL=(ALL) ALL)
+[WILDCARD] - Commands contain wildcards
+[DANGEROUS-CMD] - Contains dangerous commands based on GTFOBins sudo category
+[ROOT-USER] - Explicit root user targeting in runas specification
+[ROOT-ACCESS] - Administrative group membership (non-wheel groups)
+Admin group - Member of administrative group (wheel/sudo/admin)
+
+-Standard Flags:
+
+Group privilege - Standard group-based sudo access
+User privilege - Standard individual user sudo access
+
+-GTFOBins Dangerous Commands (Partial List):
+
+Shells: bash, sh, zsh, csh, ksh, dash, ash, fish
+Editors: vim, vi, nano, emacs, ed, joe, pico
+System: su, sudo, systemctl, service, mount, umount
+Network: ssh, scp, sftp, nc, curl, wget, rsync
+Development: gcc, make, gdb, python, perl, ruby, node
+File Operations: find, chmod, chown, cp, mv, tar, zip
+User Management: passwd, usermod, useradd, userdel
+Administrative: crontab, pkexec, docker, kubectl
+
+
+--get_privesc.sh Flags
+-Dangerous SUID Binary Flags:
+
+[GTFOBINS-EXPLOITABLE] - Binary identified by GTFOBins SUID category (7z, awk, bash, vim, python, etc.)
+[DANGEROUS] - Base flag for risky SUID binaries
+[NON-ROOT-OWNER] - SUID binary owned by non-root user
+[WRITABLE-DIR] - Binary in world-writable directory
+[UNUSUAL-LOCATION] - Not in standard system paths
+[DEV-TOOL] - Development tools with SUID
+[UNUSUAL] - Non-standard but not flagged as dangerous
+
+-Standard SUID Flags:
+
+[STANDARD-SUID] - Expected system SUID programs
+
+-Capabilities Flags:
+
+[GTFOBINS-EXPLOITABLE] - Binary identified by GTFOBins capabilities category (gdb, node, perl, php, python, ruby, vim, etc.)
+[HIGH-RISK] - Base flag for dangerous capabilities with additional risk factors
+[DANGEROUS-CAP] - cap_setuid, cap_dac_override, cap_sys_admin, etc. (with effective permissions)
+[MULTIPLE-CAPS] - Binary has multiple capabilities
+[EFFECTIVE-CAPS] - Capabilities are effective (+ep) - immediately usable
+[WRITABLE-DIR] - Binary in world-writable directory
+[UNUSUAL-LOCATION] - Not in standard system paths
+[LOW-RISK] - Permitted caps - Network/system tool (capabilities permitted but not effective)
+[CAPS-ENABLED] - Standard flag for other capabilities-enabled binaries

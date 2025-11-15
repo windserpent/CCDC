@@ -4,7 +4,7 @@
 # Shows firewalld and nftables rules in unified precedence-ordered table
 # Includes rich rules, port forwarding, direct rules, ICMP, custom services
 
-# Column widths (enhanced for multi-port services)
+# Column width configuration
 COL_PRECEDENCE=3
 COL_SOURCE=15
 COL_ZONE=20
