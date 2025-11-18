@@ -565,7 +565,7 @@ fix_symmetric_key() {
     # Update or create server.conf
     if [[ -f "$server_conf" ]]; then
         # Replace existing key
-        sed -i.bak "s/pass4SymmKey = .*/pass4SymmKey = $new_key/" "$server_conf"
+        sed -i.bak "s|pass4SymmKey = .*|pass4SymmKey = $new_key|" "$server_conf"
     else
         # Create new configuration
         cat > "$server_conf" << EOF
