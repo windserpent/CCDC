@@ -30,16 +30,14 @@ set -euo pipefail
 # ============================================================================
 
 # Network Configuration
-SPLUNK_SERVER_IP="127.20.242.20"
-SPLUNK_DOMAIN="local"
+SPLUNK_SERVER_IP="172.16.101.10"
+SPLUNK_DOMAIN="ccdcteam.com"
 SPLUNK_HOSTNAME="splunk"
 
 # Firewall Access Control - Networks allowed to access Splunk
 ALLOWED_NETWORKS=(
-    "127.20.242.0/24"    # Local subnet
-    "10.0.0.0/8"         # Private network range
-    "192.168.0.0/16"     # Private network range
-    "172.16.0.0/12"      # Private network range
+    "127.16.101.0/24"    # Local subnet
+#    "172.16.0.0/12"      # Private network range
 )
 
 # System Configuration
@@ -404,13 +402,13 @@ check_symmetric_key() {
     if [[ -f "$server_conf" ]]; then
         if grep -q "pass4SymmKey = changeme" "$server_conf" 2>/dev/null; then
             echo -e "${RED}CRITICAL: Default symmetric key detected${NC}"
-            ((CRITICAL_ISSUES_FOUND++))
+            ((CRITICAL_ISSUES_FOUND++)) || true
         else
             echo -e "${GREEN}PASS: Symmetric key appears to be changed${NC}"
         fi
     else
         echo -e "${YELLOW}WARNING: server.conf not found in local${NC}"
-        ((MEDIUM_ISSUES_FOUND++))
+        ((MEDIUM_ISSUES_FOUND++)) || true
     fi
 }
 
@@ -421,13 +419,13 @@ check_ssl_password() {
     if [[ -f "$server_conf" ]]; then
         if grep -q "sslPassword = password" "$server_conf" 2>/dev/null; then
             echo -e "${RED}CRITICAL: Default SSL password detected${NC}"
-            ((CRITICAL_ISSUES_FOUND++))
+            ((CRITICAL_ISSUES_FOUND++)) || true
         else
             echo -e "${GREEN}PASS: SSL password appears to be changed${NC}"
         fi
     else
         echo -e "${YELLOW}WARNING: server.conf not found in local${NC}"
-        ((MEDIUM_ISSUES_FOUND++))
+        ((MEDIUM_ISSUES_FOUND++)) || true
     fi
 }
 
@@ -438,16 +436,16 @@ check_web_https() {
     if [[ -f "$web_conf" ]]; then
         if grep -q "enableSplunkWebSSL = false" "$web_conf" 2>/dev/null; then
             echo -e "${RED}CRITICAL: HTTPS disabled for web interface${NC}"
-            ((CRITICAL_ISSUES_FOUND++))
+            ((CRITICAL_ISSUES_FOUND++)) || true
         elif grep -q "enableSplunkWebSSL = true" "$web_conf" 2>/dev/null; then
             echo -e "${GREEN}PASS: HTTPS enabled for web interface${NC}"
         else
             echo -e "${YELLOW}HIGH: HTTPS setting not configured (defaults to disabled)${NC}"
-            ((HIGH_ISSUES_FOUND++))
+            ((HIGH_ISSUES_FOUND++)) || true
         fi
     else
         echo -e "${YELLOW}HIGH: web.conf not found in local${NC}"
-        ((HIGH_ISSUES_FOUND++))
+        ((HIGH_ISSUES_FOUND++)) || true
     fi
 }
 
@@ -458,13 +456,13 @@ check_python_ssl_verification() {
     if [[ -f "$launch_conf" ]]; then
         if grep -q "PYTHONHTTPSVERIFY=0" "$launch_conf" 2>/dev/null; then
             echo -e "${RED}CRITICAL: Python HTTPS verification disabled${NC}"
-            ((CRITICAL_ISSUES_FOUND++))
+            ((CRITICAL_ISSUES_FOUND++)) || true
         else
             echo -e "${GREEN}PASS: Python HTTPS verification enabled or default${NC}"
         fi
     else
         echo -e "${YELLOW}WARNING: splunk-launch.conf not found${NC}"
-        ((MEDIUM_ISSUES_FOUND++))
+        ((MEDIUM_ISSUES_FOUND++)) || true
     fi
 }
 
@@ -472,7 +470,7 @@ check_python_ssl_verification() {
 check_mongodb_binding() {
     if netstat -tlnp 2>/dev/null | grep -q "0.0.0.0:8191" || ss -tlnp 2>/dev/null | grep -q "0.0.0.0:8191"; then
         echo -e "${YELLOW}HIGH: MongoDB bound to all interfaces (0.0.0.0:8191)${NC}"
-        ((HIGH_ISSUES_FOUND++))
+        ((HIGH_ISSUES_FOUND++)) || true
     else
         echo -e "${GREEN}PASS: MongoDB binding appears secure${NC}"
     fi
@@ -485,18 +483,18 @@ check_ssl_verification_settings() {
     
     if [[ -f "$server_conf" ]]; then
         if grep -q "sslVerifyServerName = false" "$server_conf" 2>/dev/null; then
-            ((issues++))
+            ((issues++)) || true
         fi
         if grep -q "cliVerifyServerName = false" "$server_conf" 2>/dev/null; then
-            ((issues++))
+            ((issues++)) || true
         fi
         if grep -q "sslVerifyServerCert = false" "$server_conf" 2>/dev/null; then
-            ((issues++))
+            ((issues++)) || true
         fi
         
         if [[ $issues -gt 0 ]]; then
             echo -e "${YELLOW}HIGH: SSL verification settings disabled ($issues settings)${NC}"
-            ((HIGH_ISSUES_FOUND++))
+            ((HIGH_ISSUES_FOUND++)) || true
         else
             echo -e "${GREEN}PASS: SSL verification settings appear secure${NC}"
         fi
@@ -516,7 +514,7 @@ check_service_user() {
     
     if [[ "$mongodb_running_as_root" == true ]]; then
         echo -e "${YELLOW}HIGH: MongoDB running as root user${NC}"
-        ((HIGH_ISSUES_FOUND++))
+        ((HIGH_ISSUES_FOUND++)) || true
     else
         echo -e "${GREEN}PASS: MongoDB not running as root${NC}"
     fi
@@ -536,14 +534,14 @@ check_file_permissions() {
         if [[ -f "$file" ]]; then
             local owner=$(stat -c '%U' "$file" 2>/dev/null)
             if [[ "$owner" != "$SPLUNK_USER" ]]; then
-                ((issues++))
+                ((issues++)) || true
             fi
         fi
     done
     
     if [[ $issues -gt 0 ]]; then
         echo -e "${YELLOW}MEDIUM: File ownership issues detected ($issues files)${NC}"
-        ((MEDIUM_ISSUES_FOUND++))
+        ((MEDIUM_ISSUES_FOUND++)) || true
     else
         echo -e "${GREEN}PASS: File permissions appear correct${NC}"
     fi
@@ -578,7 +576,7 @@ EOF
     
     set_splunk_file_permissions "$server_conf" 600
     success "Symmetric key updated"
-    ((ISSUES_FIXED++))
+    ((ISSUES_FIXED++)) || true
 }
 
 # Fix SSL password and generate certificates
@@ -610,7 +608,7 @@ EOF
     
     set_splunk_file_permissions "$server_conf" 600
     success "SSL configuration updated"
-    ((ISSUES_FIXED++))
+    ((ISSUES_FIXED++)) || true
 }
 
 # Generate certificates with proper SANs
@@ -705,7 +703,7 @@ EOF
     
     set_splunk_file_permissions "$web_conf" 640
     success "HTTPS enabled for web interface"
-    ((ISSUES_FIXED++))
+    ((ISSUES_FIXED++)) || true
 }
 
 # Fix Python HTTPS verification
@@ -734,7 +732,7 @@ EOF
     
     set_splunk_file_permissions "$launch_conf" 644
     success "Python HTTPS verification enabled"
-    ((ISSUES_FIXED++))
+    ((ISSUES_FIXED++)) || true
 }
 
 # Create MongoDB keyfile if missing
@@ -758,7 +756,7 @@ check_and_create_mongodb_keyfile() {
         set_splunk_file_permissions "$keyfile_path" 600
         
         success "MongoDB keyfile created"
-        ((ISSUES_FIXED++))
+        ((ISSUES_FIXED++)) || true
     fi
 }
 
@@ -795,7 +793,7 @@ fix_ssl_verification_settings() {
     
     set_splunk_file_permissions "$server_conf" 600
     success "SSL verification settings enabled"
-    ((ISSUES_FIXED++))
+    ((ISSUES_FIXED++)) || true
 }
 
 # Fix service user permissions
@@ -828,7 +826,7 @@ EOF
     fi
     
     success "Service user configuration updated"
-    ((ISSUES_FIXED++))
+    ((ISSUES_FIXED++)) || true
 }
 
 # Configure firewall rules
@@ -848,7 +846,7 @@ configure_firewall() {
     fi
     
     success "Firewall configuration completed"
-    ((ISSUES_FIXED++))
+    ((ISSUES_FIXED++)) || true
 }
 
 # Configure firewalld
@@ -941,7 +939,7 @@ fix_file_permissions() {
     done
     
     success "File permissions updated"
-    ((ISSUES_FIXED++))
+    ((ISSUES_FIXED++)) || true
 }
 
 # Fix SELinux contexts
@@ -978,7 +976,7 @@ stop_splunk_services() {
     local count=0
     while pgrep -f splunkd >/dev/null && [[ $count -lt $timeout ]]; do
         sleep 1
-        ((count++))
+        ((count++)) || true
     done
     
     if pgrep -f splunkd >/dev/null; then
@@ -1005,7 +1003,7 @@ start_splunk_services() {
     local count=0
     while ! pgrep -f splunkd >/dev/null && [[ $count -lt $timeout ]]; do
         sleep 2
-        ((count++))
+        ((count++)) || true
     done
     
     if pgrep -f splunkd >/dev/null; then
@@ -1030,37 +1028,37 @@ verify_hardening() {
     # Test HTTPS connectivity
     if curl -k -s --max-time 10 "https://$SPLUNK_SERVER_IP:8000" >/dev/null 2>&1; then
         success "HTTPS web interface accessible"
-        ((verification_passed++))
+        ((verification_passed++)) || true
     else
         warning "HTTPS web interface not accessible"
-        ((verification_failed++))
+        ((verification_failed++)) || true
     fi
     
     # Test Splunk API
     if curl -k -s --max-time 10 "https://$SPLUNK_SERVER_IP:8089/services/server/info" | grep -q "splunkd" 2>/dev/null; then
         success "Splunk API accessible via HTTPS"
-        ((verification_passed++))
+        ((verification_passed++)) || true
     else
         warning "Splunk API not accessible"
-        ((verification_failed++))
+        ((verification_failed++)) || true
     fi
     
     # Verify certificate SANs
     if openssl x509 -in "$SPLUNK_HOME/etc/auth/server.pem" -text -noout | grep -q "$SPLUNK_SERVER_IP" 2>/dev/null; then
         success "Certificate contains correct IP address in SAN"
-        ((verification_passed++))
+        ((verification_passed++)) || true
     else
         warning "Certificate may not contain correct SANs"
-        ((verification_failed++))
+        ((verification_failed++)) || true
     fi
     
     # Verify MongoDB binding
     if ss -tlnp 2>/dev/null | grep -q "127.0.0.1:8191"; then
         success "MongoDB bound to localhost only"
-        ((verification_passed++))
+        ((verification_passed++)) || true
     else
         warning "MongoDB binding verification failed"
-        ((verification_failed++))
+        ((verification_failed++)) || true
     fi
     
     # Verify service user
@@ -1068,14 +1066,14 @@ verify_hardening() {
         local mongo_user=$(ps -eo pid,user,comm | grep mongod | grep -v grep | awk '{print $2}' | head -1)
         if [[ "$mongo_user" == "$SPLUNK_USER" ]]; then
             success "MongoDB running as splunk user"
-            ((verification_passed++))
+            ((verification_passed++)) || true
         else
             warning "MongoDB not running as splunk user (running as: $mongo_user)"
-            ((verification_failed++))
+            ((verification_failed++)) || true
         fi
     else
         warning "MongoDB not running"
-        ((verification_failed++))
+        ((verification_failed++)) || true
     fi
     
     echo ""
