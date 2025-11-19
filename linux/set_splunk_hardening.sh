@@ -598,7 +598,7 @@ fix_ssl_configuration() {
     create_splunk_directory "$local_dir"
     
     if [[ -f "$server_conf" ]]; then
-        sed -i.bak "s/sslPassword = .*/sslPassword = $new_password/" "$server_conf"
+        sed -i.bak "s|sslPassword = .*|sslPassword = $new_password|" "$server_conf"
     else
         cat > "$server_conf" << EOF
 [sslConfig]
@@ -687,7 +687,7 @@ enable_web_https() {
     if [[ -f "$web_conf" ]]; then
         # Update existing file
         if grep -q "enableSplunkWebSSL" "$web_conf"; then
-            sed -i.bak 's/enableSplunkWebSSL = false/enableSplunkWebSSL = true/' "$web_conf"
+            sed -i.bak 's|enableSplunkWebSSL = false|enableSplunkWebSSL = true|' "$web_conf"
         else
             echo "" >> "$web_conf"
             echo "[settings]" >> "$web_conf"
@@ -714,7 +714,7 @@ fix_python_ssl_verification() {
     
     if [[ -f "$launch_conf" ]]; then
         # Remove or comment out the problematic line
-        sed -i.bak 's/^PYTHONHTTPSVERIFY=0/#PYTHONHTTPSVERIFY=0/' "$launch_conf"
+        sed -i.bak 's|^PYTHONHTTPSVERIFY=0|#PYTHONHTTPSVERIFY=0|' "$launch_conf"
         
         # Add the correct setting if not present
         if ! grep -q "PYTHONHTTPSVERIFY=1" "$launch_conf"; then
@@ -787,7 +787,7 @@ fix_ssl_verification_settings() {
         if ! grep -q "^$key" "$server_conf"; then
             echo "$setting" >> "$server_conf"
         else
-            sed -i.bak "s/^$key.*/$setting/" "$server_conf"
+            sed -i.bak "s|^$key.*|$setting|" "$server_conf"
         fi
     done
     
