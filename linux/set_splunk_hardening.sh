@@ -36,7 +36,7 @@ SPLUNK_HOSTNAME="splunk"
 
 # Firewall Access Control - Networks allowed to access Splunk
 ALLOWED_NETWORKS=(
-    "127.16.101.0/24"    # Local subnet
+    "172.16.101.0/24"    # Local subnet
 #    "172.16.0.0/12"      # Private network range
 )
 
