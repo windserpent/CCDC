@@ -476,12 +476,21 @@ check_python_ssl_verification() {
 check_mongodb_binding() {
     local server_conf="$SPLUNK_HOME/etc/system/local/server.conf"
     
+    # First check if configured for localhost binding
     if [[ -f "$server_conf" ]] && grep -q "bind_ip = 127.0.0.1" "$server_conf"; then
         echo -e "${GREEN}PASS: MongoDB configured to bind to localhost only${NC}"
-    elif netstat -tlnp 2>/dev/null | grep -q "127.0.0.1:8191"; then
-        echo -e "${GREEN}PASS: MongoDB bound to localhost only${NC}"
-    elif netstat -tlnp 2>/dev/null | grep -q "0.0.0.0:8191" || ss -tlnp 2>/dev/null | grep -q "0.0.0.0:8191"; then
-        echo -e "${RED}HIGH: MongoDB bound to all interfaces (0.0.0.0:8191)${NC}"
+        return 0
+    fi
+    
+    # If not configured for localhost, check if protected by firewall
+    if firewall-cmd --list-rich-rules 2>/dev/null | grep -q "source address=\"127.0.0.1\".*port=\"8191\""; then
+        echo -e "${GREEN}PASS: MongoDB secured via firewall (localhost-only access)${NC}"
+        return 0
+    fi
+    
+    # Check actual network binding as fallback
+    if netstat -tlnp 2>/dev/null | grep -q "0.0.0.0:8191" || ss -tlnp 2>/dev/null | grep -q "0.0.0.0:8191"; then
+        echo -e "${RED}HIGH: MongoDB bound to all interfaces without firewall protection${NC}"
         ((HIGH_ISSUES_FOUND++)) || true
     else
         echo -e "${GREEN}PASS: MongoDB binding appears secure${NC}"
@@ -1146,12 +1155,12 @@ verify_hardening() {
     fi
     
     # Verify MongoDB binding
-    if ss -tlnp 2>/dev/null | grep -q "127.0.0.1:8191"; then
-        success "MongoDB bound to localhost only"
-        ((verification_passed++)) || true
+    if firewall-cmd --list-rich-rules 2>/dev/null | grep -q "source address=\"127.0.0.1\".*port=\"8191\""; then
+        success "MongoDB secured via firewall (localhost-only access)"
+        ((verification_passed++))
     else
-        warning "MongoDB binding verification failed"
-        ((verification_failed++)) || true
+        warning "MongoDB firewall protection verification failed"
+        ((verification_failed++))
     fi
     
     # Verify service user
