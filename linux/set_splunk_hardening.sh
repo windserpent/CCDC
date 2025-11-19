@@ -936,17 +936,25 @@ configure_firewalld() {
         fi
     fi
 
-    local ports=("8000/tcp" "8089/tcp" "9997/tcp" "8191/tcp")
+    local web_ports=("8000/tcp" "8089/tcp" "9997/tcp")
+    local mongo_port="8191/tcp"
     
-    for port in "${ports[@]}"; do
-        # Remove existing rules
+    # Configure standard Splunk ports for subnet access
+    for port in "${web_ports[@]}"; do
         firewall-cmd --remove-port="$port" --permanent 2>/dev/null || true
         
-        # Add rules for allowed networks
         for network in "${ALLOWED_NETWORKS[@]}"; do
             firewall-cmd --add-rich-rule="rule family='ipv4' source address='$network' port protocol='tcp' port='${port%/*}' accept" --permanent
         done
     done
+    
+    # Configure MongoDB for localhost-only access
+    firewall-cmd --remove-port="$mongo_port" --permanent 2>/dev/null || true
+    firewall-cmd --add-rich-rule="rule family='ipv4' source address='127.0.0.1' port protocol='tcp' port='8191' accept" --permanent
+    
+    firewall-cmd --reload
+    log "Configured firewalld rules for Splunk ports (MongoDB restricted to localhost)"
+}
     
     firewall-cmd --reload
     log "Configured firewalld rules for Splunk ports"
