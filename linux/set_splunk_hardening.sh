@@ -43,9 +43,11 @@ ALLOWED_NETWORKS=(
 # System Configuration
 SPLUNK_HOME="/opt/splunk"
 SPLUNK_USER="splunk"
+SPLUNK_GROUP="splunk"
 LOG_FILE="/var/log/splunk_security_hardening.log"
 COMPLIANCE_REPORT="/var/log/splunk_security_compliance_report.log"
-BACKUP_DIR="/tmp/splunk_config_backup_$(date +%Y%m%d_%H%M%S)"
+BACKUP_BASE_DIR="/opt/splunk/backups"
+BACKUP_DIR="$BACKUP_BASE_DIR/config_backup_$(date +%Y%m%d_%H%M%S)"
 OPERATION=${1:-"check"}
 
 # Certificate Subject Details
@@ -229,7 +231,7 @@ create_splunk_directory() {
     local permissions=${2:-755}
     
     mkdir -p "$dir_path"
-    chown "$SPLUNK_USER:$SPLUNK_USER" "$dir_path"
+    chown "$SPLUNK_USER:$SPLUNK_GROUP" "$dir_path"
     chmod "$permissions" "$dir_path"
     
     log "Created directory: $dir_path (permissions: $permissions)"
@@ -241,7 +243,7 @@ set_splunk_file_permissions() {
     local permissions=${2:-640}
     
     if [[ -f "$file_path" ]]; then
-        chown "$SPLUNK_USER:$SPLUNK_USER" "$file_path"
+        chown "$SPLUNK_USER:$SPLUNK_GROUP" "$file_path"
         chmod "$permissions" "$file_path"
         log "Set permissions on $file_path ($permissions)"
     fi
@@ -253,9 +255,13 @@ set_splunk_file_permissions() {
 
 # Create backup of configuration files
 create_backup() {
-    info "Creating backup of Splunk configuration files..."
+    info "Creating backup of Splunk configuration files to: $BACKUP_DIR"
     
+    # Create backup directory structure with proper permissions
+    create_splunk_directory "$BACKUP_BASE_DIR" 700
     mkdir -p "$BACKUP_DIR"
+    chown "$SPLUNK_USER:$SPLUNK_GROUP" "$BACKUP_DIR"
+    chmod 700 "$BACKUP_DIR"
     
     local config_files=(
         "etc/system/local/server.conf"
@@ -846,7 +852,7 @@ fix_service_user() {
     fi
     
     # Fix ownership of all Splunk directories
-    chown -R "$SPLUNK_USER:$SPLUNK_USER" "$SPLUNK_HOME"
+    chown -R "$SPLUNK_USER:$SPLUNK_GROUP" "$SPLUNK_HOME"
     
     # Ensure splunk can be started by systemd as splunk user
     if systemctl list-unit-files | grep -q splunk.service; then
@@ -857,7 +863,7 @@ fix_service_user() {
         cat > "$service_dir/user-override.conf" << EOF
 [Service]
 User=$SPLUNK_USER
-Group=$SPLUNK_USER
+Group=$SPLUNK_GROUP
 EOF
         
         systemctl daemon-reload
