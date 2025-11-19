@@ -964,10 +964,6 @@ configure_firewalld() {
     firewall-cmd --reload
     log "Configured firewalld rules for Splunk ports (MongoDB restricted to localhost)"
 }
-    
-    firewall-cmd --reload
-    log "Configured firewalld rules for Splunk ports"
-}
 
 # Configure UFW (Ubuntu/Debian)
 configure_ufw() {
@@ -1157,10 +1153,10 @@ verify_hardening() {
     # Verify MongoDB binding
     if firewall-cmd --list-rich-rules 2>/dev/null | grep -q "source address=\"127.0.0.1\".*port=\"8191\""; then
         success "MongoDB secured via firewall (localhost-only access)"
-        ((verification_passed++))
+        ((verification_passed++)) || true
     else
         warning "MongoDB firewall protection verification failed"
-        ((verification_failed++))
+        ((verification_failed++)) || true
     fi
     
     # Verify service user
