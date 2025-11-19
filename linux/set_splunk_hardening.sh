@@ -454,7 +454,7 @@ check_python_ssl_verification() {
     local launch_conf="$SPLUNK_HOME/etc/splunk-launch.conf"
     
     if [[ -f "$launch_conf" ]]; then
-        if grep -q "PYTHONHTTPSVERIFY=0" "$launch_conf" 2>/dev/null; then
+        if grep -q "^PYTHONHTTPSVERIFY=0" "$launch_conf" 2>/dev/null; then
             echo -e "${RED}CRITICAL: Python HTTPS verification disabled${NC}"
             ((CRITICAL_ISSUES_FOUND++)) || true
         else
@@ -851,6 +851,46 @@ configure_firewall() {
 
 # Configure firewalld
 configure_firewalld() {
+    info "Configuring FirewallD rules for Splunk access..."
+    
+    # Check if firewalld is installed
+    if ! command -v firewall-cmd >/dev/null; then
+        warning "FirewallD not installed, skipping firewall configuration"
+        return 0
+    fi
+    
+    # Check if firewalld is enabled
+    if ! systemctl is-enabled --quiet firewalld; then
+        warning "FirewallD is disabled"
+        read -p "Enable FirewallD service? (y/N): " -r
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            systemctl enable firewalld || {
+                warning "Failed to enable FirewallD, skipping firewall configuration"
+                return 0
+            }
+            success "FirewallD enabled successfully"
+        else
+            warning "Skipping firewall configuration"
+            return 0
+        fi
+    fi
+    
+    # Check if firewalld is running
+    if ! systemctl is-active --quiet firewalld; then
+        warning "FirewallD is not running"
+        read -p "Start FirewallD service? (y/N): " -r
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            systemctl start firewalld || {
+                warning "Failed to start FirewallD, skipping firewall configuration"
+                return 0
+            }
+            success "FirewallD started successfully"
+        else
+            warning "Skipping firewall configuration"
+            return 0
+        fi
+    fi
+
     local ports=("8000/tcp" "8089/tcp" "9997/tcp" "8191/tcp")
     
     for port in "${ports[@]}"; do
