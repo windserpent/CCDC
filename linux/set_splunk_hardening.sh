@@ -4,11 +4,12 @@
 # Addresses critical security vulnerabilities identified in security assessment
 # Designed for blue team exercise environments
 #
-# Usage: ./splunk_security_hardening.sh [OPERATION]
+# Usage: ./set_splunk_hardening.sh [OPERATION]
 #
 # Operations:
 #   check           - Assess current security configuration (default)
 #   backup          - Create backup of configuration files only
+#   update-firewall - Update firewall rules with current ALLOWED_NETWORKS"
 #   apply-critical  - Fix critical security issues only (default key, SSL password, HTTPS, Python SSL)
 #   apply-all       - Apply all security hardening measures
 #   verify          - Verify security hardening was successful
@@ -16,12 +17,13 @@
 #   --help          - Display this help message
 #
 # Examples:
-#   ./splunk_security_hardening.sh check
-#   ./splunk_security_hardening.sh backup
-#   ./splunk_security_hardening.sh apply-critical
-#   ./splunk_security_hardening.sh apply-all
-#   ./splunk_security_hardening.sh verify
-#   ./splunk_security_hardening.sh rollback /tmp/splunk_config_backup_20251115_143022
+#   ./set_splunk_hardening.sh check
+#   ./set_splunk_hardening.sh backup
+#   ./set_splunk_hardening.sh update-firewall
+#   ./set_splunk_hardening.sh apply-critical
+#   ./set_splunk_hardening.sh apply-all
+#   ./set_splunk_hardening.sh verify
+#   ./set_splunk_hardening.sh rollback /opt/splunk/backups/config_backup_20251115_143022
 
 set -euo pipefail
 
@@ -1039,6 +1041,21 @@ configure_iptables() {
     log "Configured iptables rules for Splunk ports (MongoDB restricted to localhost)"
 }
 
+# Update firewall rules only
+update_firewall_only() {
+    echo -e "${CYAN}=== UPDATING FIREWALL RULES ONLY ===${NC}"
+    log "Starting firewall configuration update"
+    
+    # Optional: Create backup of current firewall rules
+    info "Current firewall rules will be updated..."
+    
+    # Configure firewall with current ALLOWED_NETWORKS
+    configure_firewall
+    
+    success "Firewall rules updated successfully"
+    ((ISSUES_FIXED++)) || true
+}
+
 # Fix file permissions
 fix_file_permissions() {
     info "Fixing file permissions for security-critical files..."
@@ -1256,6 +1273,7 @@ Additional Hardening Applied:
 $(if [[ $OPERATION == "apply-all" ]]; then
 echo "- SSL certificate verification enabled"
 echo "- MongoDB keyfile created/verified"
+echo "- MongoDB access restricted to localhost via firewall"
 echo "- Service user security configured"
 echo "- File permissions audited and fixed"
 echo "- Firewall rules configured for network access control"
@@ -1380,6 +1398,7 @@ show_help() {
     echo "Operations:"
     echo "  check           - Assess current security configuration (default)"
     echo "  backup          - Create backup of configuration files only"
+    echo "  update-firewall    - Update firewall rules with current ALLOWED_NETWORKS"
     echo "  apply-critical  - Fix critical security issues only"
     echo "  apply-all       - Apply all security hardening measures"
     echo "  verify          - Verify security hardening was successful"
@@ -1395,6 +1414,7 @@ show_help() {
     echo "Additional Hardening (apply-all only):"
     echo "  - SSL certificate verification settings"
     echo "  - MongoDB keyfile creation"
+    echo "  - MongoDB access restricted to localhost via firewall"
     echo "  - Service user security"
     echo "  - File permissions audit"
     echo "  - Firewall access control"
@@ -1408,6 +1428,7 @@ show_help() {
     echo "Examples:"
     echo "  $0 check"
     echo "  $0 backup"
+    echo "  $0 update-firewall"
     echo "  $0 apply-critical"
     echo "  $0 apply-all"
     echo "  $0 verify"
@@ -1443,6 +1464,10 @@ main() {
         "backup")
             create_backup
             generate_compliance_report "BACKUP_COMPLETED"
+            ;;
+        "update-firewall")
+            update_firewall_only
+            generate_compliance_report "FIREWALL_UPDATED"
             ;;
         "apply-critical")
             create_backup
