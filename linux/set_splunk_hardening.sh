@@ -468,8 +468,14 @@ check_python_ssl_verification() {
 
 # Check MongoDB binding
 check_mongodb_binding() {
-    if netstat -tlnp 2>/dev/null | grep -q "0.0.0.0:8191" || ss -tlnp 2>/dev/null | grep -q "0.0.0.0:8191"; then
-        echo -e "${YELLOW}HIGH: MongoDB bound to all interfaces (0.0.0.0:8191)${NC}"
+    local server_conf="$SPLUNK_HOME/etc/system/local/server.conf"
+    
+    if [[ -f "$server_conf" ]] && grep -q "bind_ip = 127.0.0.1" "$server_conf"; then
+        echo -e "${GREEN}PASS: MongoDB configured to bind to localhost only${NC}"
+    elif netstat -tlnp 2>/dev/null | grep -q "127.0.0.1:8191"; then
+        echo -e "${GREEN}PASS: MongoDB bound to localhost only${NC}"
+    elif netstat -tlnp 2>/dev/null | grep -q "0.0.0.0:8191" || ss -tlnp 2>/dev/null | grep -q "0.0.0.0:8191"; then
+        echo -e "${RED}HIGH: MongoDB bound to all interfaces (0.0.0.0:8191)${NC}"
         ((HIGH_ISSUES_FOUND++)) || true
     else
         echo -e "${GREEN}PASS: MongoDB binding appears secure${NC}"
@@ -758,6 +764,39 @@ check_and_create_mongodb_keyfile() {
         success "MongoDB keyfile created"
         ((ISSUES_FIXED++)) || true
     fi
+}
+
+# Fix MongoDB binding to localhost only
+fix_mongodb_binding() {
+    local server_conf="$SPLUNK_HOME/etc/system/local/server.conf"
+    
+    info "Configuring MongoDB to bind to localhost only..."
+    
+    # Ensure we have a server.conf to work with
+    local local_dir="$(dirname "$server_conf")"
+    create_splunk_directory "$local_dir"
+    
+    if [[ ! -f "$server_conf" ]]; then
+        echo "[kvstore]" > "$server_conf"
+    fi
+    
+    # Check if kvstore stanza exists
+    if ! grep -q "^\[kvstore\]" "$server_conf"; then
+        echo "" >> "$server_conf"
+        echo "[kvstore]" >> "$server_conf"
+    fi
+    
+    # Add or update bind_ip setting
+    if grep -q "^bind_ip" "$server_conf"; then
+        sed -i "s|^bind_ip.*|bind_ip = 127.0.0.1|" "$server_conf"
+    else
+        # Add bind_ip after [kvstore] stanza
+        sed -i "/^\[kvstore\]/a bind_ip = 127.0.0.1" "$server_conf"
+    fi
+    
+    set_splunk_file_permissions "$server_conf" 600
+    success "MongoDB configured to bind to localhost only"
+    ((ISSUES_FIXED++)) || true
 }
 
 # Fix SSL verification settings
@@ -1233,6 +1272,7 @@ apply_critical_fixes() {
     enable_web_https
     fix_python_ssl_verification
     check_and_create_mongodb_keyfile
+    fix_mongodb_binding
     
     # Validate configuration before restart
     validate_splunk_config "$SPLUNK_HOME/etc/system/local"
@@ -1264,6 +1304,7 @@ apply_all_hardening() {
     fix_python_ssl_verification
     fix_ssl_verification_settings
     check_and_create_mongodb_keyfile
+    fix_mongodb_binding
     fix_service_user
     fix_file_permissions
     
