@@ -684,7 +684,7 @@ EOF
     mv "$auth_dir/server.pem.new" "$auth_dir/server.pem"
     
     # Create CA certificate (self-signed)
-    cp "$auth_dir/server.pem" "$auth_dir/cacert.pem"
+    openssl x509 -in "$auth_dir/server.pem" -out "$auth_dir/cacert.pem"
     
     # Set permissions
     set_splunk_file_permissions "$auth_dir/server.pem" 600
@@ -947,7 +947,7 @@ configure_firewalld() {
         fi
     fi
 
-    local web_ports=("8000/tcp" "8089/tcp" "9997/tcp")
+    local web_ports=("8000/tcp" "8089/tcp" "9997/tcp" "9998/tcp")
     local mongo_port="8191/tcp"
     
     # Configure standard Splunk ports for subnet access
@@ -983,7 +983,7 @@ configure_firewalld() {
 
 # Configure UFW (Ubuntu/Debian)
 configure_ufw() {
-    local web_ports=("8000" "8089" "9997")
+    local web_ports=("8000" "8089" "9997" "9998")
     local mongo_port="8191"
     
     # Configure web/API ports for allowed networks
@@ -1006,7 +1006,7 @@ configure_ufw() {
 
 # Configure iptables
 configure_iptables() {
-    local web_ports=("8000" "8089" "9997")
+    local web_ports=("8000" "8089" "9997" "9998")
     local mongo_port="8191"
     
     # Create custom chain for Splunk

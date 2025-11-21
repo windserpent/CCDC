@@ -7,10 +7,10 @@
 # Column width configuration
 COL_PRECEDENCE=3
 COL_SOURCE=15
-COL_ZONE=20
+COL_ZONE=10
 COL_INTERFACE=10
 COL_SERVICE=20
-COL_PORT=30
+COL_PORT=15
 COL_ACTION=10
 COL_DETAILS=25
 
@@ -246,6 +246,7 @@ get_firewalld_rich_rules() {
                 local service="-"
                 local port="-"
                 local action="unknown"
+                local src_addr="unknown"
                 
                 # Extract service if present
                 if [[ "$rich_rule" =~ service[[:space:]]+name=\"([^\"]+)\" ]]; then
@@ -273,9 +274,16 @@ get_firewalld_rich_rules() {
                 elif [[ "$rich_rule" =~ reject ]]; then
                     action="reject"
                 fi
+
+                # Extract source address
+                if [[ $rule_text =~ source\ address=\"([^\"]+)\" ]]; then
+                    src_addr="src addr: ${BASH_REMATCH[1]}"
+                else
+                    src_addr="src addr: all"
+                fi
                 
                 # Create rich rule entry
-                all_rules+=("$current_precedence|rich-rule|$zone|-|$service|$port|$action|$rich_rule")
+                all_rules+=("$current_precedence|rich-rule|$zone|-|$service|$port|$action|$src_addr")
                 ((current_precedence++))
                 ((rule_count++))
                 ((rich_rule_count++))
