@@ -276,7 +276,7 @@ get_firewalld_rich_rules() {
                 fi
 
                 # Extract source address
-                if [[ $rule_text =~ source\ address=\"([^\"]+)\" ]]; then
+                if [[ $rich_rule =~ source\ address=\"([^\"]+)\" ]]; then
                     src_addr="src addr: ${BASH_REMATCH[1]}"
                 else
                     src_addr="src addr: all"
