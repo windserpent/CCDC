@@ -100,6 +100,7 @@ catch {
     exit 1
 }
 
+
 # Setup configuration directories
 Write-Host "Setting up configuration directories..." -ForegroundColor Yellow
 $configDir = "$InstallPath\etc\system\local"
@@ -124,6 +125,16 @@ Write-Host "Deployed inputs.conf" -ForegroundColor Green
 $targetOutputs = Join-Path $configDir "outputs.conf"
 Copy-Item $outputsFile -Destination $targetOutputs -Force
 Write-Host "Deployed outputs.conf" -ForegroundColor Green
+
+# Change service account to LocalSystem for Security log access
+Write-Host "Configuring service account for Security log access..." -ForegroundColor Yellow
+try {
+    sc.exe config SplunkForwarder obj= LocalSystem
+    Write-Host "Service account changed to LocalSystem" -ForegroundColor Green
+}
+catch {
+    Write-Error "Failed to change service account: $($_.Exception.Message)"
+}
 
 # Display configuration summary
 Write-Host ""
@@ -196,8 +207,6 @@ Write-Host ""
 Write-Host "DEPLOYMENT COMPLETE" -ForegroundColor Green -BackgroundColor DarkGreen
 Write-Host "===================" -ForegroundColor Green
 Write-Host "Splunk Universal Forwarder installed and running" -ForegroundColor Green
-Write-Host "Enhanced monitoring configuration deployed" -ForegroundColor Green
-Write-Host "Ready for blue team operations" -ForegroundColor Green
 Write-Host ""
 Write-Host "Verification Steps:" -ForegroundColor White
 Write-Host "- Check Splunk web interface for incoming data" -ForegroundColor White
