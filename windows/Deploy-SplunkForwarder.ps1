@@ -11,7 +11,7 @@ Write-Host "Splunk Universal Forwarder Deployment - CCDC Edition" -ForegroundCol
 Write-Host "====================================================" -ForegroundColor Cyan
 
 # Function to refresh environment variables
-function Refresh-Environment {
+function Get-RefreshedEnvironment {
     Write-Host "Refreshing environment variables..." -ForegroundColor Yellow
     
     $machinePath = [System.Environment]::GetEnvironmentVariable("PATH", "Machine")

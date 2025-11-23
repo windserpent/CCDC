@@ -7,7 +7,7 @@ Write-Host "WinGet Setup & Git Installation Script" -ForegroundColor Cyan
 Write-Host "=====================================" -ForegroundColor Cyan
 
 # Function to refresh environment variables
-function Refresh-Environment {
+function Get-RefreshedEnvironment {
     Write-Host "Refreshing environment variables..." -ForegroundColor Yellow
     
     # Refresh PATH specifically
@@ -28,7 +28,7 @@ function Refresh-Environment {
 }
 
 # Function to check and install WinGet
-function Ensure-WinGet {
+function Get-WinGet {
     Write-Host "Checking for WinGet..." -ForegroundColor Yellow
     
     # Check if winget command is available
@@ -58,7 +58,7 @@ function Ensure-WinGet {
         Write-Host "WinGet repaired for all users" -ForegroundColor Green
         
         # Step 3: Refresh environment
-        Refresh-Environment
+        Get-RefreshedEnvironment
         
         # Step 4: Verify installation
         Start-Sleep -Seconds 3
@@ -96,13 +96,13 @@ function Install-Git {
         
         # Install Git using WinGet
         Write-Host "Downloading and installing Git..." -ForegroundColor Yellow
-        $result = winget install --id Git.Git -e --source winget --silent --accept-package-agreements --accept-source-agreements
+        winget install --id Git.Git -e --source winget --silent --accept-package-agreements --accept-source-agreements
         
         if ($LASTEXITCODE -eq 0) {
             Write-Host "Git installation completed" -ForegroundColor Green
             
             # Refresh environment to pick up Git
-            Refresh-Environment
+            Get-RefreshedEnvironment
             
             # Verify Git installation
             Start-Sleep -Seconds 3
@@ -128,7 +128,7 @@ function Install-Git {
 # Main script execution
 try {
     # Step 1: Ensure WinGet is installed and working
-    if (!(Ensure-WinGet)) {
+    if (!(Get-WinGet)) {
         Write-Error "Cannot proceed without WinGet. Exiting."
         exit 1
     }
